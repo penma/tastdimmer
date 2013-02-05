@@ -5,24 +5,30 @@
 
 #include "taster.h"
 
-static uint8_t brightness = 80;
+#define TABLE_TOP 31
+#define TABLE_BOT 0
+
+static const __flash uint8_t ramp[32] = {
+	0, 1, 2, 2, 2, 3, 3, 4, 5, 6, 7, 8, 10, 11, 13, 16, 19, 23,
+	27, 32, 38, 45, 54, 64, 76, 91, 108, 128, 152, 181, 215, 255
+};
+
+static uint8_t brightness = TABLE_TOP;
 static int enabled = 1;
 
 static void update_light() {
 	if (enabled) {
 		TCCR0A |= (1 << COM0A1) | (1 << COM0B1);
-		OCR0A = OCR0B = brightness;
+		OCR0A = OCR0B = ramp[brightness];
 	} else {
 		TCCR0A &= ~((1 << COM0A1) | (1 << COM0B1));
 	}
 }
 
-#define TABLE_TOP 0xff
-#define TABLE_BOT 0
 
-#define DIMMER_TAST_MIN 10
-#define DIMMER_START_DELAY 100
-#define DIMMER_DIRECTION_DELAY 200
+#define DIMMER_TAST_MIN 2 /* 50ms */
+#define DIMMER_START_DELAY 20 /* 500ms */
+#define DIMMER_DIRECTION_DELAY 40 /* 1000ms */
 
 ISR (TIMER1_COMPA_vect) {
 	static uint16_t hold_step = 0;
@@ -98,7 +104,7 @@ int main (void) {
 
 	TCCR1A = 0;
 	TCCR1B = (1 << WGM12) | (1 << CS12) | (1 << CS10); /* prescaler 1/1024, CTC */
-	OCR1A = 38; /* (F_CPU/1024 * 5ms) - 1 */
+	OCR1A = 194; /* (F_CPU/1024 * 25ms) - 1 */
 	TIMSK |= 1 << OCIE1A;
 	sei();
 
